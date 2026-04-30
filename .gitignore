@@ -2,6 +2,9 @@
 
 Initial/init*.dat
 
+# Mac Finder
+.DS_Store
+
 # GitHub C code template
 
 # Prerequisites
