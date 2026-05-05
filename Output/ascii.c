@@ -1,5 +1,6 @@
 
 #include "../paul.h"
+#include <mpi.h>
 
 double get_moment_arm( double , double );
 double get_dV( double , double );

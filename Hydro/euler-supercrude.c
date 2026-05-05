@@ -3,7 +3,6 @@
 
 static double RHO_FLOOR = 0.0;
 static double PRE_FLOOR = 0.0;
-static double grav_G = 0.0;
 static int USE_RT = 1;
 static double rt_A = 0.0;
 static double rt_B = 0.0;
@@ -21,21 +20,23 @@ void setHydroParams( struct domain * theDomain ){
    RHO_FLOOR = theDomain->theParList.Density_Floor;
    PRE_FLOOR = theDomain->theParList.Pressure_Floor;
    USE_RT = theDomain->theParList.rt_flag;
-   grav_G = theDomain->theParList.grav_G;
    rt_A = theDomain->theParList.rt_A;
    rt_B = theDomain->theParList.rt_B;
    rt_C = theDomain->theParList.rt_C;
    rt_D = theDomain->theParList.rt_D;
 }
 
-void init_eos(){
+void init_eos( char * path2table ){
+   //Needed for tabulated Helmeos
 }
 
 void azbar( double * X , double * abar , double * zbar ){
-   int q;
+   //Routine from Helmeos
+   //Given a composition of mass fractions
+   //Returns average atomoic number and average charge number
    double a = 0.0;
    double z = 0.0;
-   for( q=0 ; q<NUM_I ; q++ ){
+   for( int q=0 ; q<NUM_I ; q++ ){
       a += X[q]/aion[q];
       z += X[q]*zion[q]/aion[q];
    }
@@ -44,16 +45,16 @@ void azbar( double * X , double * abar , double * zbar ){
 }
 
 double get_vr( double * prim ){
+   //Get radial velocity
    return( prim[VRR] );
 }
 
 double get_cs( double * prim , double * T ){
-   //Get sound speed knowing density, pressure, and composition
-   int q;
+   //Get sound speed given density, pressure, and composition
    double rho = prim[RHO];
    double pre = prim[PPP];
    double x[NUM_I],abar,zbar,temp,cs2;
-   for( q=0 ; q<NUM_I ; q++) { x[q]=prim[XXX+q]; }
+   for( int q=0 ; q<NUM_I ; q++) { x[q]=prim[XXX+q]; }
    azbar(x,&abar,&zbar);
    temp = superCrude_get_Temp_fromPre(rho,pre,abar,zbar);
    cs2 = superCrude_get_cs2(rho,temp,abar,zbar);
@@ -61,11 +62,10 @@ double get_cs( double * prim , double * T ){
 }
 
 double get_pre( double * prim , double * T ){
-   //Get pressure knowing density, temperature, and composition
-   int q;
+   //Get pressure given density, temperature, and composition
    double rho = prim[RHO];
    double temp,x[NUM_I],pre,abar,zbar;
-   for( q=0 ; q<NUM_I ; q++ ){ x[q]=prim[XXX+q]; }
+   for( int q=0 ; q<NUM_I ; q++ ){ x[q]=prim[XXX+q]; }
    temp = *T;
    azbar(x,&abar,&zbar);
    pre = superCrude_get_Pressure(rho,temp,abar,zbar);
@@ -73,13 +73,12 @@ double get_pre( double * prim , double * T ){
 }
 
 double get_pre_from_etot( double * cons , double * T ){
-   //Get pressure knowing density, thermal energy, and composition
-   //cons[density,eint,0,0,mass_frac]
-   int q;
+   //Get pressure given density, specific internal energy, and composition
+   //cons[density,eint,0,0,mass_frac] : special cons array
    double rho = cons[DDD];
    double etot = cons[TAU];
    double x[NUM_I],abar,zbar,pre,temp;
-   for( q=0 ; q<NUM_I ; q++) { x[q]=cons[XXX+q]; }
+   for( int q=0 ; q<NUM_I ; q++) { x[q]=cons[XXX+q]; }
    azbar(x,&abar,&zbar);
    temp = superCrude_get_Temp(rho,rho*etot,abar,zbar);
    pre = superCrude_get_Pressure(rho,temp,abar,zbar);
@@ -87,23 +86,21 @@ double get_pre_from_etot( double * cons , double * T ){
 }
 
 double get_temp( double * prim , double * T ){
-   //Get temperature knowing density, pressure, and composition
-   int q;
+   //Get temperature given density, pressure, and composition
    double rho = prim[RHO];
    double pre = prim[PPP];
    double x[NUM_I],abar,zbar,temp;
-   for( q=0 ; q<NUM_I ; q++) { x[q]=prim[XXX+q]; }
+   for( int q=0 ; q<NUM_I ; q++) { x[q]=prim[XXX+q]; }
    azbar(x,&abar,&zbar);
    temp = superCrude_get_Temp_fromPre(rho,pre,abar,zbar);
    return temp;
 }
 
 double get_eint( double * prim , double * T ){
-   //Get thermal energy knowing density, temperature, and composition
-   int q;
+   //Get specific internal energy given density, temperature, and composition
    double rho = prim[RHO];
    double temp,x[NUM_I],rhoe,abar,zbar;
-   for( q=0 ; q<NUM_I ; q++ ){ x[q]=prim[XXX+q]; }
+   for( int q=0 ; q<NUM_I ; q++ ){ x[q]=prim[XXX+q]; }
    temp = *T;
    azbar(x,&abar,&zbar);
    rhoe = superCrude_get_Edens(rho,temp,abar,zbar);
@@ -111,11 +108,10 @@ double get_eint( double * prim , double * T ){
 }
 
 double get_entr( double * prim , double * T ){
-   //Get entropy knowing density, temperature, and composition
-   int q;
+   //Get specific entropy given density, temperature, and composition
    double rho = prim[RHO];
    double temp,x[NUM_I],stot,abar,zbar;
-   for( q=0 ; q<NUM_I ; q++ ){ x[q]=prim[XXX+q]; }
+   for( int q=0 ; q<NUM_I ; q++ ){ x[q]=prim[XXX+q]; }
    temp = *T;
    azbar(x,&abar,&zbar);
    stot = superCrude_get_Entropy(rho,temp,abar,zbar);
@@ -123,16 +119,33 @@ double get_entr( double * prim , double * T ){
 }
 
 double get_temp_cons( double * cons , double * T ){
-   //Get temperature knowing density, thermal energy, and composition
-   //cons[density,eint,0,0,mass_frac]
-   int q;
+   //Get temperature given density, specific internal energy, and composition
+   //cons[density,eint,0,0,mass_frac] : special cons array
    double rho = cons[DDD];
    double etot = cons[TAU];
    double x[NUM_I],abar,zbar,temp;
-   for( q=0 ; q<NUM_I ; q++) { x[q]=cons[XXX+q]; }
+   for( int q=0 ; q<NUM_I ; q++) { x[q]=cons[XXX+q]; }
    azbar(x,&abar,&zbar);
    temp = superCrude_get_Temp(rho,rho*etot,abar,zbar);
    return temp;
+}
+
+void get_derivs( double * prim , double * T , double * derivs ){
+   //Get dpd, dpt, dsd, and dst given density, temperature, and composition
+   //derivs[0] = dpd = change in pressure w.r.t. density
+   //derivs[1] = dpt = change in pressure w.r.t. temperature
+   //derivs[2] = dsd = change in specific entropy w.r.t. density
+   //derivs[3] = dst = change in specific entropy w.r.t. temperature
+   double rho = prim[RHO];
+   double temp,x[NUM_I],abar,zbar;
+   for( int q=0 ; q<NUM_I ; q++ ){ x[q]=prim[XXX+q]; }
+   temp = *T;
+   azbar(x,&abar,&zbar);
+
+   derivs[0] = P_deriv_rho(rho,temp,abar,zbar);
+   derivs[1] = P_deriv_T(rho,temp,abar,zbar);
+   derivs[2] = S_deriv_rho(rho,temp,abar,zbar);
+   derivs[3] = S_deriv_T(rho,temp,abar,zbar);
 }
 
 void prim2cons( double * prim , double * cons , double GMr , double dV , double * T ){
@@ -515,6 +528,91 @@ double E_deriv( double rho , double T , double A , double Z ){
 
 }
 
+double P_gasrad( double rho , double T , double A , double Z ){
+
+   double eF = get_fermi( rho , T , A , Z , 0 );
+   double T0 = 6./M_PI/M_PI*eF/k_B;
+
+   double elec_plus_ions = 1.+Z;
+   if( include_deg_factor ) elec_plus_ions = 1. + Z*(T/(T+T0));
+   double n = elec_plus_ions*rho*n_A/A;
+
+   double Pgas = n*k_B*T;
+   double Prad = asol*T*T*T*T/3.;
+
+   return( Pgas + Prad );
+
+}
+
+double P_deriv_T( double rho , double T , double A , double Z ){
+
+   double eF = get_fermi( rho , T , A , Z , 0 );
+   double T0 = 6./M_PI/M_PI*eF/k_B;
+
+   double elec_plus_ions = 1.+Z;
+   if( include_deg_factor ) elec_plus_ions = 1. + Z*(T/(T+T0));
+   double n = elec_plus_ions*rho*n_A/A;
+   double ne = Z*rho*n_A/A;
+
+   double P1gas = n*k_B;
+   if( include_deg_factor ) P1gas += ne*k_B*T*T0/pow(T+T0,2.);
+   double P1rad = 4.*asol*T*T*T/3.;
+
+   return( P1gas + P1rad );
+
+}
+
+double P_deriv_rho( double rho , double T , double A , double Z ){
+   
+   double eF = get_fermi( rho , T , A , Z , 0 );
+   double T0 = 6./M_PI/M_PI*eF/k_B;
+
+   double elec_plus_ions = 1.+Z;
+   if( include_deg_factor ) elec_plus_ions = 1. + Z*(T/(T+T0));
+   double n1 = elec_plus_ions*n_A/A;
+   
+   double P1gas = n1*k_B*T;
+   double P1rad = 0.0;
+
+   return( P1gas + P1rad );
+
+}
+
+double S_deriv_T( double rho , double T , double A , double Z ){
+
+   double eF = get_fermi( rho , T , A , Z , 0 );
+   double T0 = 6./M_PI/M_PI*eF/k_B;
+
+   double he = 2.5;
+   if( include_deg_factor ) he *= T0/(T+T0)/(T+T0);
+//   if( include_deg_factor ) ne *= ( 1. - exp(-T/T0) );
+   double ne = Z*rho*n_A/A;
+   double ni = rho*n_A/A;
+
+   double S1rad = 4.*asol*T*T/rho;
+   double S1ele = ne/rho*k_B*( he  + 1.5*k_B/(18.*eF/M_PI/M_PI + k_B*T) );
+   double S1ion = 1.5*(n_A/A)*k_B*k_B/( k_B*T + (n_A/A)*2.*M_PI*hbar*hbar/exp(2.5)*pow(ni,2./3.) );
+
+   return( S1rad + S1ele + S1ion );
+
+}
+
+double S_deriv_rho( double rho , double T , double A , double Z ){
+   
+   double eF = get_fermi( rho , T , A , Z , 0 );
+   double T0 = 6./M_PI/M_PI*eF/k_B;
+
+   double ne = Z*rho*n_A/A;
+   double ni = rho*n_A/A;
+
+   double S1rad = -4./3.*asol*T*T*T/rho/rho;
+   double S1ele = 0.0;
+   double S1ion = -(n_A/A)*(n_A/A)*k_B*ni/( 1. + (n_A/A)*2.*M_PI*hbar*hbar/exp(2.5)/k_B/T*pow(ni,2./3.) );
+
+   return( S1rad + S1ele + S1ion );
+
+}
+
 double get_Tguess( double rho , double eps , double A , double Z ){
 
    double elec_plus_ions = Z+1.;
@@ -522,6 +620,20 @@ double get_Tguess( double rho , double eps , double A , double Z ){
 
    double T1 = eps/(1.5*n*k_B);
    double T2 = pow(eps/asol,0.25);
+
+   double Tguess = 1./sqrt( 1./T1/T1 + 1./T2/T2 );
+
+   return(Tguess);
+
+}
+
+double get_Tguess_fromPre( double rho , double pre , double A , double Z ){
+
+   double elec_plus_ions = Z+1.;
+   double n = elec_plus_ions*rho*n_A/A;
+
+   double T1 = pre/(n*k_B);
+   double T2 = pow(3.*pre/asol,0.25);
 
    double Tguess = 1./sqrt( 1./T1/T1 + 1./T2/T2 );
 
@@ -554,6 +666,31 @@ double superCrude_get_Temp( double rho , double eps , double A , double Z ){
    return( Tguess );
 }
 
+double superCrude_get_Temp_fromPre( double rho , double pre , double A , double Z ){
+   
+   double Pd = P_deg( rho , A , Z );
+   pre -= Pd;
+   if( pre<0.0 ) return(0.0);
+
+   double Tguess = get_Tguess_fromPre( rho , pre , A , Z );
+   //Tguess = 1e10;
+   double pre_guess = P_gasrad( rho , Tguess , A , Z );
+   double dP = pre_guess-pre;
+//   int n = 0;
+
+   while( fabs(dP/pre) > superCrude_TOL ){
+      double P1 = P_deriv_T( rho , Tguess , A , Z );
+      double dT = -dP/P1;
+      Tguess += dT;
+      pre_guess = P_gasrad( rho , Tguess , A , Z );
+      dP = pre_guess-pre;
+//      ++n;
+   }
+//   printf("%e, %d ",Tguess,n);
+
+   return( 0.0 );
+}
+
 double superCrude_get_Cv( double rho , double T , double A , double Z ){
 
    double e1 = E_deriv( rho , T , A , Z );
@@ -582,9 +719,4 @@ double superCrude_get_Entropy( double rho , double T , double A , double Z ){
 
    return( s );
 
-}
-
-double superCrude_get_Temp_fromPre( double rho , double pre , double A , double Z ){
-
-   return( 0.0 );
 }

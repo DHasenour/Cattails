@@ -1,7 +1,7 @@
 
 INITIAL  = readtable
 HYDRO    = euler-helmeos
-REACTIONS = aprox13
+REACTIONS = pyna13
 OUTPUT   = ascii
 REPORT	 = report
 #paul.h needs REACTIONS directory info
@@ -15,18 +15,16 @@ H55 = /opt/homebrew
 endif
 
 CC = mpicc
-#FLAGS = -O3 -Wall -g
 FLAGS = -O3 -g
 
 GFORT = gfortran
 CXX = mpicxx
 
 INC = -I$(H55)/include
-#LIB = -L$(H55)/lib -lm -lhdf5
 
 OBJ = main.o mpisetup.o profiler.o readpar.o domain.o gridsetup.o geometry.o exchange.o misc.o timestep.o onestep.o riemann.o boundary.o gravity.o nozzle.o plm.o helmeos.o $(INITIAL).o $(OUTPUT).o $(REPORT).o $(HYDRO).o reacstep.o get_rhs_jacobn.o actual_network_data.o
 
-default: cattails
+default: cattails.exe
 
 %.o: %.c paul.h
 	$(CC) $(FLAGS) $(INC) -c $<
@@ -58,9 +56,8 @@ get_rhs_jacobn.o : Reactions/$(REACTIONS)/get_rhs_jacobn.cpp
 actual_network_data.o : Reactions/$(REACTIONS)/actual_network_data.cpp
 	$(CXX) -std=c++20 $(FLAGS) -I Reactions/$(REACTIONS)/headers -c Reactions/$(REACTIONS)/actual_network_data.cpp
 
-cattails: $(OBJ) paul.h
-	$(CXX) -std=c++20 $(FLAGS) -o cattails $(OBJ) -lgfortran
-#	$(CXX) $(FLAGS) $(LIB) -o cattails $(OBJ) -lgfortran
+cattails.exe: $(OBJ) paul.h
+	$(CXX) -std=c++20 $(FLAGS) -o cattails.exe $(OBJ) -lgfortran
 
 clean:
-	rm -f *.o cattails
+	rm -f *.o cattails.exe

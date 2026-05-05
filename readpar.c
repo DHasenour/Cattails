@@ -1,7 +1,7 @@
 enum{VAR_INT,VAR_DOUB,VAR_STR};
 
 #include "paul.h"
-#include <string.h>
+#include <mpi.h>
 
 int readvar( char * filename , char * varname , int vartype , void * ptr ){
 
@@ -90,7 +90,6 @@ int read_par_file( struct domain * theDomain ){
          err += readvar( pfile , "RT_D"              , VAR_DOUB , &(theList->rt_D)            );
          err += readvar( pfile , "Absorb_Inner"      , VAR_INT  , &(theList->Absorb_BC)       );
          err += readvar( pfile , "Gravity_Switch"    , VAR_INT  , &(theList->grav_flag)       );
-         err += readvar( pfile , "Gravity_G"         , VAR_DOUB , &(theList->grav_G)          );
          err += readvar( pfile , "Gravity_Pointmass" , VAR_DOUB , &(theList->grav_pointmass)  );
          err += readvar( pfile , "Gravity_E_Mode"    , VAR_INT  , &(theList->grav_e_mode)     );
          err += readvar( pfile , "Gravity_Balanced"  , VAR_INT  , &(theList->grav_bal)        );

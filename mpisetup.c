@@ -1,5 +1,6 @@
 
 #include "paul.h"
+#include <mpi.h>
 
 int mpiSetup( struct domain * theDomain , int argc, char * argv[] ){
 

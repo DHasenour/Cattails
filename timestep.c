@@ -1,5 +1,5 @@
+
 #include "paul.h"
-#include <time.h>
 
 void reacstep( struct domain * , double );
 void onestep( struct domain * , double , double , int , int );

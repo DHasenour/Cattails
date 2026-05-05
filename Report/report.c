@@ -1,6 +1,6 @@
 
 #include "../paul.h"
-
+#include <mpi.h>
 
 void report( struct domain * theDomain ){
 
@@ -10,8 +10,6 @@ void report( struct domain * theDomain ){
    int rank = theDomain->rank;
    int size = theDomain->size;
    double t = theDomain->t;
-   
-   double G_const = theDomain->theParList.grav_G;
 
    //double Mach_Avg = 0.0;
    double Mass   = 0.0;
@@ -72,9 +70,9 @@ void report( struct domain * theDomain ){
 
       double m = theCells[i].miph - theCells[i].dm;
 
-      E_Therm += (theCells[i].cons[TAU] - .5*theCells[i].cons[DDD]*v*v + G_const*m/r*theCells[i].cons[DDD]);
+      E_Therm += (theCells[i].cons[TAU] - .5*theCells[i].cons[DDD]*v*v + grav_G*m/r*theCells[i].cons[DDD]);
       E_Kin += .5*theCells[i].cons[DDD]*v*v;
-      E_Grav  += -G_const*m/r*theCells[i].cons[DDD];
+      E_Grav  += -grav_G*m/r*theCells[i].cons[DDD];
       for( q=0 ; q<NUM_I ; ++q ){
          E_Bind += theCells[i].cons[XXX+q]*EBIND[q];
          E_Therm -= theCells[i].cons[XXX+q]*EBIND[q];

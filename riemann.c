@@ -7,14 +7,12 @@ static int rt_flag = 0;
 static double gamma_law = 1.0;
 static int grav_e_mode = 0;
 static int Bal = 0;
-static double grav_G = 1.0;
 
 void setRiemannParams( struct domain * theDomain ){
    riemann_solver = theDomain->theParList.Riemann_Solver;
    rt_flag = theDomain->theParList.rt_flag;
    grav_e_mode = theDomain->theParList.grav_e_mode;
    Bal = theDomain->theParList.grav_bal;
-   grav_G = theDomain->theParList.grav_G;
 }
 
 void prim2cons( double * , double * , double , double , double * );

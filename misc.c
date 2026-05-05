@@ -1,5 +1,5 @@
 #include "paul.h"
-#include <string.h>
+#include <mpi.h>
 
 double get_dA( double );
 double get_dV( double , double );

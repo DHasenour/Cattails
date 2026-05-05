@@ -3,38 +3,43 @@
 
 static double RHO_FLOOR = 0.0;
 static double PRE_FLOOR = 0.0;
-static double grav_G = 0.0;
 static int USE_RT = 1;
 static double rt_A = 0.0;
 static double rt_B = 0.0;
 static double rt_C = 0.0;
 static double rt_D = 0.0;
 
-void init_helmeos_();
+void init_helmeos_( char * );
 void getcons_( double * , double * , double * , double * , double * , double * , double * , double * );
 void getprim_( double * , double * , double * , double * , double * , double * , double * );
 void getambient_( double * , double * , double * , double * , double * , double * , double * , double * , double * , double * );
+void getpppeos_( double * , double * , double * , double * , double * , double * , double * , double * , double * , double * , double * , double * );
+void gettempfromentropy_( double * , double * , double * , double * , double * );
 
 void setHydroParams( struct domain * theDomain ){
    RHO_FLOOR = theDomain->theParList.Density_Floor;
    PRE_FLOOR = theDomain->theParList.Pressure_Floor;
    USE_RT = theDomain->theParList.rt_flag;
-   grav_G = theDomain->theParList.grav_G;
    rt_A = theDomain->theParList.rt_A;
    rt_B = theDomain->theParList.rt_B;
    rt_C = theDomain->theParList.rt_C;
    rt_D = theDomain->theParList.rt_D;
 }
 
-void init_eos(){
-   init_helmeos_();
+void init_eos( char * path2table ){
+   //Read in the helm_table (only need to do per execution)
+   //Input the directory information
+   // "" , "Hydro/Helmeos/" , or "../../Hydro/Helmeos/"
+   init_helmeos_( path2table );
 }
 
 void azbar( double * X , double * abar , double * zbar ){
-   int q;
+   //Routine from Helmeos
+   //Given a composition of mass fractions
+   //Returns average atomoic number and average charge number
    double a = 0.0;
    double z = 0.0;
-   for( q=0 ; q<NUM_I ; q++ ){
+   for( int q=0 ; q<NUM_I ; q++ ){
       a += X[q]/aion[q];
       z += X[q]*zion[q]/aion[q];
    }
@@ -43,16 +48,16 @@ void azbar( double * X , double * abar , double * zbar ){
 }
 
 double get_vr( double * prim ){
+   //Get radial velocity
    return( prim[VRR] );
 }
 
 double get_cs( double * prim , double * T ){
-   //Get sound speed knowing density, pressure, and composition
-   int q;
+   //Get sound speed given density, pressure, and composition
    double rho = prim[RHO];
    double pre = prim[PPP];
    double x[NUM_I],abar,zbar,etot,stot,temp,cs;
-   for( q=0 ; q<NUM_I ; q++) { x[q]=prim[XXX+q]; }
+   for( int q=0 ; q<NUM_I ; q++ ){ x[q]=prim[XXX+q]; }
    temp = *T; //a guess
    azbar(x,&abar,&zbar);
    getcons_(&rho,&pre,&abar,&zbar,&etot,&stot,&temp,&cs);
@@ -60,11 +65,10 @@ double get_cs( double * prim , double * T ){
 }
 
 double get_pre( double * prim , double * T ){
-   //Get pressure knowing density, temperature, and composition
-   int q;
+   //Get pressure given density, temperature, and composition
    double rho = prim[RHO];
    double temp,x[NUM_I],pre,etot,gam,stot,cs,cv,abar,zbar;
-   for( q=0 ; q<NUM_I ; q++ ){ x[q]=prim[XXX+q]; }
+   for( int q=0 ; q<NUM_I ; q++ ){ x[q]=prim[XXX+q]; }
    temp = *T;
    azbar(x,&abar,&zbar);
    getambient_(&rho,&temp,&abar,&zbar,&pre,&stot,&gam,&etot,&cs,&cv);
@@ -72,13 +76,12 @@ double get_pre( double * prim , double * T ){
 }
 
 double get_pre_from_etot( double * cons , double * T ){
-   //Get pressure knowing density, thermal energy, and composition
-   //cons[density,eint,0,0,mass_frac]
-   int q;
+   //Get pressure given density, specific internal energy, and composition
+   //cons[density,eint,0,0,mass_frac] : special cons array
    double rho = cons[DDD];
    double etot = cons[TAU];
    double x[NUM_I],abar,zbar,pre,temp,cs;
-   for( q=0 ; q<NUM_I ; q++) { x[q]=cons[XXX+q]; }
+   for( int q=0 ; q<NUM_I ; q++ ){ x[q]=cons[XXX+q]; }
    temp = *T; //a guess
    azbar(x,&abar,&zbar);
    getprim_(&rho,&etot,&abar,&zbar,&pre,&temp,&cs);
@@ -86,12 +89,11 @@ double get_pre_from_etot( double * cons , double * T ){
 }
 
 double get_temp( double * prim , double * T ){
-   //Get temperature knowing density, pressure, and composition
-   int q;
+   //Get temperature given density, pressure, and composition
    double rho = prim[RHO];
    double pre = prim[PPP];
    double x[NUM_I],abar,zbar,etot,stot,temp,cs;
-   for( q=0 ; q<NUM_I ; q++) { x[q]=prim[XXX+q]; }
+   for( int q=0 ; q<NUM_I ; q++) { x[q]=prim[XXX+q]; }
    temp = *T; //a guess
    azbar(x,&abar,&zbar);
    getcons_(&rho,&pre,&abar,&zbar,&etot,&stot,&temp,&cs);
@@ -99,11 +101,10 @@ double get_temp( double * prim , double * T ){
 }
 
 double get_eint( double * prim , double * T ){
-   //Get thermal energy knowing density, temperature, and composition
-   int q;
+   //Get specific internal energy given density, temperature, and composition
    double rho = prim[RHO];
-   double temp,x[NUM_I],pre,etot,gam,stot,cs,cv,abar,zbar;
-   for( q=0 ; q<NUM_I ; q++ ){ x[q]=prim[XXX+q]; }
+   double temp,x[NUM_I],pre,stot,gam,etot,cs,cv,abar,zbar;
+   for( int q=0 ; q<NUM_I ; q++ ){ x[q]=prim[XXX+q]; }
    temp = *T;
    azbar(x,&abar,&zbar);
    getambient_(&rho,&temp,&abar,&zbar,&pre,&stot,&gam,&etot,&cs,&cv);
@@ -111,11 +112,10 @@ double get_eint( double * prim , double * T ){
 }
 
 double get_entr( double * prim , double * T ){
-   //Get entropy knowing density, temperature, and composition
-   int q;
+   //Get specific entropy given density, temperature, and composition
    double rho = prim[RHO];
    double temp,x[NUM_I],pre,etot,gam,stot,cs,cv,abar,zbar;
-   for( q=0 ; q<NUM_I ; q++ ){ x[q]=prim[XXX+q]; }
+   for( int q=0 ; q<NUM_I ; q++ ){ x[q]=prim[XXX+q]; }
    temp = *T;
    azbar(x,&abar,&zbar);
    getambient_(&rho,&temp,&abar,&zbar,&pre,&stot,&gam,&etot,&cs,&cv);
@@ -123,17 +123,35 @@ double get_entr( double * prim , double * T ){
 }
 
 double get_temp_cons( double * cons , double * T ){
-   //Get temperature knowing density, thermal energy, and composition
-   //cons[density,eint,0,0,mass_frac]
-   int q;
+   //Get temperature given density, specific internal energy, and composition
+   //cons[density,eint,0,0,mass_frac] : special cons array
    double rho = cons[DDD];
    double etot = cons[TAU];
    double x[NUM_I],abar,zbar,pre,temp,cs;
-   for( q=0 ; q<NUM_I ; q++) { x[q]=cons[XXX+q]; }
+   for( int q=0 ; q<NUM_I ; q++) { x[q]=cons[XXX+q]; }
    temp = *T; //a guess
    azbar(x,&abar,&zbar);
    getprim_(&rho,&etot,&abar,&zbar,&pre,&temp,&cs);
    return temp;
+}
+
+void get_derivs( double * prim , double * T , double * derivs ){
+   //Get dpd, dpt, dsd, and dst given density, temperature, and composition
+   //derivs[0] = dpd = change in pressure w.r.t. density
+   //derivs[1] = dpt = change in pressure w.r.t. temperature
+   //derivs[2] = dsd = change in specific entropy w.r.t. density
+   //derivs[3] = dst = change in specific entropy w.r.t. temperature
+   double rho = prim[RHO];
+   double temp,x[NUM_I],pre,ent,cs,etot,dpd,dpt,dsd,dst,abar,zbar;
+   for( int q=0 ; q<NUM_I ; q++ ){ x[q]=prim[XXX+q]; }
+   temp = *T;
+   azbar(x,&abar,&zbar);
+   getpppeos_(&rho,&temp,&abar,&zbar,&pre,&ent,&cs,&etot,&dpd,&dpt,&dsd,&dst);
+   
+   derivs[0] = dpd;
+   derivs[1] = dpt;
+   derivs[2] = dsd;
+   derivs[3] = dst;
 }
 
 void prim2cons( double * prim , double * cons , double GMr , double dV , double * T ){

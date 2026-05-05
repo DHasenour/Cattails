@@ -1,5 +1,6 @@
 
 #include "paul.h"
+#include <mpi.h>
 
 double get_dV( double , double );
 
@@ -23,14 +24,14 @@ void possiblyOutput( struct domain * , int );
 void start_clock( struct domain * );
 void generate_log( struct domain * );
 
-void init_eos();
+void init_eos( char * );
 
 int main( int argc , char * argv[] ){
  
    MPI_Init(&argc,&argv);
    struct domain theDomain = {0};
 
-   init_eos();
+   init_eos("Hydro/Helmeos/");
 
    start_clock( &theDomain ); 
    read_par_file( &theDomain );

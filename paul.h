@@ -1,14 +1,13 @@
 enum{RHO,PPP,VRR,AAA,XXX};
 enum{DDD,TAU,SRR};
 
-#include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
 #include <time.h>
 
-#include "Reactions/aprox13/network.h"
+#include "Reactions/pyna13/network.h"
 
 #define NUM_Q (3+NUM_I+1)
 #define NUM_G 2
@@ -53,6 +52,12 @@ static const double ssol = 5.6704e-5;  //erg cm−2 s−1 K−4
 //radiation (density) constant
 static const double asol = 4.0 * ssol / c_light;   //erg cm−3 K−4
 
+////////// Other USEFUL CONSTANTS ///////////
+//gravitational constant
+static const double grav_G = 6.67428e-8;  //cm^3 g-1 s-2 
+//solar mass
+static const double Msun = 1.9892e33;  //g
+
 struct param_list{
 
    int Num_R;
@@ -72,7 +77,7 @@ struct param_list{
    double ATOL,RTOL;
 
    int grav_flag, grow_flag;
-   double grav_G, grav_pointmass;
+   double grav_pointmass;
    int grav_e_mode;
    int grav_bal;
 

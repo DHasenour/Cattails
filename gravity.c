@@ -1,12 +1,11 @@
 
 #include "paul.h"
+#include <mpi.h>
 
 static int grav_E_mode = 0;
-static double grav_G = 0.0;
 
 void setGravityParams( struct domain * theDomain ){
    grav_E_mode = theDomain->theParList.grav_e_mode;
-   grav_G = theDomain->theParList.grav_G;
 }
 
 double get_dV( double , double );

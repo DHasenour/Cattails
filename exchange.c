@@ -1,8 +1,6 @@
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
 #include "paul.h"
+#include <mpi.h>
 
 struct cell_lite{
    double prim[NUM_Q];

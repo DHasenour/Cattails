@@ -1,10 +1,12 @@
-      subroutine INIT_HELMEOS()
+      subroutine INIT_HELMEOS(path2table)
       include 'implno.dek'
       include 'vector_eos.dek'
 
-      call read_helm_table
+      character(len=20) path2table
 
-      end   
+      call read_helm_table(path2table)
+
+      end
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -124,11 +126,11 @@
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-      subroutine GETPPPEOS(den,temp,abar,zbar,ptot,dpd)
+      subroutine GETPPPEOS(den,temp,abar,zbar,ptot,stot,cs,etot,dpd,dpt,dsd,dst)
       include 'implno.dek'
       include 'vector_eos.dek'
 
-      double precision den,temp,abar,zbar,ptot,dpd
+      double precision den,temp,abar,zbar,ptot,stot,cs,etot,dpd,dpt,dsd,dst
 
 ! Setup arrays for helmeos
       den_row(1)  = den
@@ -141,7 +143,36 @@
 
 ! Update values and send back to c
       ptot = ptot_row(1)
+      stot = stot_row(1)
+      cs = cs_row(1)
+      etot = etot_row(1)
       dpd = dpd_row(1)
+      dpt = dpt_row(1)
+      dsd = dsd_row(1)
+      dst = dst_row(1)
+
+      end  
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+ subroutine GETTEMPFROMENTROPY(den,stot,abar,zbar,temp)
+      include 'implno.dek'
+      include 'vector_eos.dek'
+
+      double precision den,stot,abar,zbar,temp
+
+! Setup arrays for helmeos
+      den_row(1)  = den
+      stot_row(1) = stot
+      temp_row(1) = temp
+      abar_row(1) = abar ; zbar_row(1) = zbar
+      jlo_eos = 1 ; jhi_eos = 1
+
+      !call read_helm_table
+      call invert_helm_sd
+
+! Update values and send back to c
+      temp = temp_row(1)
 
       end    
 
@@ -812,7 +843,7 @@
 
 
 !---------------------------------------------------------------------
-      subroutine read_helm_table
+      subroutine read_helm_table(path2table)
       include 'implno.dek'
       include 'helm_table_storage.dek'
 
@@ -824,6 +855,9 @@
       integer          i,j
       double precision tsav,dsav,dth,dt2,dti,dt2i,dt3i, &
                        dd,dd2,ddi,dd2i,dd3i
+      character(len=20) path2table
+
+!      path2table = 'Hydro/Helmeos/'
 
 
 ! for standard table limits
@@ -883,12 +917,12 @@
 
 ! see if a binary version exists
 
-       inquire(file='helm_table.bin', exist=file_exists)
+       inquire(file=path2table // 'helm_table.bin', exist=file_exists)
 
 ! if the binary file exists, read it
        if (file_exists) then
 !        write(6,*) 'reading binary helm table file'
-        open(unit=18,file='helm_table.bin',form='unformatted',status='old')
+        open(unit=18,file=path2table // 'helm_table.bin',form='unformatted',status='old')
         read(18) f
         read(18) fd
         read(18) ft
@@ -920,14 +954,14 @@
 
 
 ! see if the ascii file exists
-        inquire(file='helm_table.dat', exist=file_exists)
+        inquire(file=path2table // 'helm_table.dat', exist=file_exists)
         if (.not.file_exists) then
           stop 'helm table does not exist'
         else
 
 ! ascii file exists. first read it
 !         write(6,*) 'reading ascii helm table file'
-         open(unit=19,file='helm_table.dat',status='old')
+         open(unit=19,file=path2table // 'helm_table.dat',status='old')
 
 ! read the helmholtz free energy and its derivatives
          do j=1,jmax
@@ -963,7 +997,7 @@
 
 ! create a binary file for future use
 !         write(6,*) 'writing binary file'
-         open(unit=18,file='helm_table.bin',form='unformatted')
+         open(unit=18,file=path2table // 'helm_table.bin',form='unformatted')
          write(18) f
          write(18) fd
          write(18) ft
@@ -2109,6 +2143,133 @@
 
 
 ! call eos one more time with the converged value of the density
+
+      jlo_eos = jlo_save
+      jhi_eos = jhi_save
+
+      call helmeos
+
+      return
+      end
+
+
+
+      subroutine invert_helm_sd
+      include 'implno.dek'
+      include 'const.dek'
+      include 'vector_eos.dek'
+
+
+! given the entropy, density, and composition
+! find everything else
+
+! it is assumed that stot_row(j), den_row(j), abar_row(j),
+! zbar_row(j), and the pipe limits (jlo_eos:jhi_eos), have
+! been set before calling this routine.
+
+! on input temp_row(j) conatins a guess for the temperature,
+! on output temp_row(j) contains the converged temperature.
+
+! To get the greatest speed advantage, the eos should be fed a
+! large pipe of data to work on.
+
+! this version is quiet on all errors
+
+
+! local variables
+      integer          i,j,jlo_save,jhi_save
+      double precision tmp,f,df,tmpnew,eostol,fpmin
+      parameter        (eostol = 1.0d-8, &
+                        fpmin  = 1.0d-14)
+
+
+! initialize
+      jlo_save = jlo_eos
+      jhi_save = jhi_eos
+      do j=jlo_eos, jhi_eos
+       eoswrk01(j) = 0.0d0
+       eoswrk02(j) = 0.0d0
+       eoswrk03(j) = stot_row(j)
+       eoswrk04(j) = temp_row(j)
+      end do
+
+
+! do the first newton loop with all elements in the pipe
+      call helmeos
+
+      do j = jlo_eos, jhi_eos
+
+       f     = stot_row(j)/eoswrk03(j) - 1.0d0
+       df    = dst_row(j)/eoswrk03(j)
+       eoswrk02(j) = f/df
+
+! limit excursions to factor of two changes
+       tmp    = temp_row(j)
+       tmpnew = min(max(0.5d0*tmp,tmp - eoswrk02(j)),2.0d0*tmp)
+
+! compute the error
+       eoswrk01(j)  = abs((tmpnew - tmp)/tmp)
+
+! store the new temperature, keep it within the table limits
+       temp_row(j)  = min(1.0d14,max(tmpnew,1.0d-11))
+
+      enddo
+
+
+
+! now loop over each element of the pipe individually
+      do j = jlo_save, jhi_save
+
+       do i=2,40
+
+        if (eoswrk01(j) .lt. eostol .or. &
+            abs(eoswrk02(j)) .le. fpmin) goto 20
+
+        jlo_eos = j
+        jhi_eos = j
+
+        call helmeos
+
+        f     = stot_row(j)/eoswrk03(j) - 1.0d0
+        df    = dst_row(j)/eoswrk03(j)
+        eoswrk02(j) = f/df
+
+! limit excursions to factor of two changes
+        tmp    = temp_row(j)
+        tmpnew = min(max(0.5d0*tmp,tmp - eoswrk02(j)),2.0d0*tmp)
+
+! compute the error
+        eoswrk01(j)  = abs((tmpnew - tmp)/tmp)
+
+! store the new density, keep it within the table limits
+        temp_row(j)  = min(1.0d14,max(tmpnew,1.0d-11))
+
+! end of netwon loop
+       end do
+
+
+! we did not converge if we land here
+      write(6,*)
+      write(6,*) 'newton-raphson failed in routine invert_helm_sd'
+      write(6,*) 'pipeline element',j
+      write(6,01) 'entr  =',eoswrk03(j)
+ 01   format(1x,5(a,1pe16.8))
+      write(6,01) 'error =',eoswrk01(j), &
+                  '  eostol=',eostol,'  fpmin =',fpmin
+      write(6,01) 'tmp   =',temp_row(j),'  tmpold=',eoswrk04(j)
+      write(6,01) 'f/df  =',eoswrk02(j),' f   =',f,    ' df    =',df
+      write(6,*)
+      stop 'could not find a density in routine invert_helm_sd'
+
+
+
+! land here if newton loop converged, back for another pipe element
+ 20    continue
+      end do
+
+
+
+! call eos one more time with the converged value of the temperature
 
       jlo_eos = jlo_save
       jhi_eos = jhi_save

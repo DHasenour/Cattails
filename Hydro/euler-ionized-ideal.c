@@ -5,7 +5,6 @@ static double GAMMA_LAW = 5./3.;
 
 static double RHO_FLOOR = 0.0;
 static double PRE_FLOOR = 0.0;
-static double grav_G = 0.0;
 static int USE_RT = 1;
 static double rt_A = 0.0;
 static double rt_B = 0.0;
@@ -16,22 +15,37 @@ void setHydroParams( struct domain * theDomain ){
    RHO_FLOOR = theDomain->theParList.Density_Floor;
    PRE_FLOOR = theDomain->theParList.Pressure_Floor;
    USE_RT = theDomain->theParList.rt_flag;
-   grav_G = theDomain->theParList.grav_G;
    rt_A = theDomain->theParList.rt_A;
    rt_B = theDomain->theParList.rt_B;
    rt_C = theDomain->theParList.rt_C;
    rt_D = theDomain->theParList.rt_D;
 }
 
-void init_eos(){
+void init_eos( char * path2table ){
+   //Needed for tabulated Helmeos
+}
+
+void azbar( double * X , double * abar , double * zbar ){
+   //Routine from Helmeos
+   //Given a composition of mass fractions
+   //Returns average atomoic number and average charge number
+   double a = 0.0;
+   double z = 0.0;
+   for( int q=0 ; q<NUM_I ; q++ ){
+      a += X[q]/aion[q];
+      z += X[q]*zion[q]/aion[q];
+   }
+   *abar = 1.0/a;
+   *zbar = z/a;
 }
 
 double get_vr( double * prim ){
+   //Get radial velocity
    return( prim[VRR] );
 }
 
 double get_cs( double * prim , double * T ){
-   //Get sound speed knowing density, pressure, and composition
+   //Get sound speed given density, pressure, and composition
    double rho = prim[RHO];
    double pre = prim[PPP];
 
@@ -39,11 +53,10 @@ double get_cs( double * prim , double * T ){
 }
 
 double get_pre( double * prim , double * T ){
-   //Get pressure knowing density, temperature, and composition
-   int q;
+   //Get pressure given density, temperature, and composition
    double rho = prim[RHO];
    double temp,x[NUM_I],abar,zbar;
-   for( q=0 ; q<NUM_I ; q++ ){ x[q]=prim[XXX+q]; }
+   for( int q=0 ; q<NUM_I ; q++ ){ x[q]=prim[XXX+q]; }
    azbar(x,&abar,&zbar);
    temp = *T;
 
@@ -54,8 +67,8 @@ double get_pre( double * prim , double * T ){
 }
 
 double get_pre_from_etot( double * cons , double * T ){
-   //Get pressure knowing density, thermal energy, and composition
-   //cons[density,eint,0,0,mass_frac]
+   //Get pressure given density, specific internal energy, and composition
+   //cons[density,eint,0,0,mass_frac] : special cons array
    double rho = cons[DDD];
    double rhoe = rho*cons[TAU];
 
@@ -63,12 +76,11 @@ double get_pre_from_etot( double * cons , double * T ){
 }
 
 double get_temp( double * prim , double * T ){
-   //Get temperature knowing density, pressure, and composition
-   int q;
+   //Get temperature given density, pressure, and composition
    double rho = prim[RHO];
    double pre = prim[PPP];
    double x[NUM_I],abar,zbar;
-   for( q=0 ; q<NUM_I ; q++ ){ x[q]=prim[XXX+q]; }
+   for( int q=0 ; q<NUM_I ; q++ ){ x[q]=prim[XXX+q]; }
    azbar(x,&abar,&zbar);
 
    double elec_plus_ions = 1.+zbar;
@@ -78,46 +90,61 @@ double get_temp( double * prim , double * T ){
 }
 
 double get_eint( double * prim , double * T ){
-   //Get thermal energy knowing density, temperature, and composition
-   int q;
+   //Get specific internal energy given density, temperature, and composition
    double rho = prim[RHO];
    double temp,x[NUM_I],abar,zbar;
-   for( q=0 ; q<NUM_I ; q++ ){ x[q]=prim[XXX+q]; }
+   for( int q=0 ; q<NUM_I ; q++ ){ x[q]=prim[XXX+q]; }
    azbar(x,&abar,&zbar);
    temp = *T;
 
    double elec_plus_ions = 1.+zbar;
    double n = elec_plus_ions*rho*n_A/abar; //OG superCrude is 1/m_p
-
    double pre = n * k_B * temp;
 
    return pre/(rho*(GAMMA_LAW-1.));
 }
 
 double get_entr( double * prim , double * T ){
-   //Get entropy knowing density, temperature, and composition
+   //Get specific entropy given density, temperature, and composition
 
-   //i don't want to think about this tonight
+   //the below is just ions, no electrons from superCrude//
+   double rho = prim[RHO];
+   double x[NUM_I],abar,zbar;
+   for( int q=0 ; q<NUM_I ; q++ ){ x[q]=prim[XXX+q]; }
+   azbar(x,&abar,&zbar);
+   double Sion = ni*k_B*( 1.5*log( 1. + exp(2.5)*(abar/n_A)*k_B*T/2./M_PI/hbar/hbar/pow(ni,2./3.) ) );
 
-   return 0.0;
+   return Sion/rho;
 }
 
 double get_temp_cons( double * cons , double * T ){
-   //Get temperature knowing density, thermal energy, and composition
-   //cons[density,eint,0,0,mass_frac]
+   //Get temperature given density, specific internal energy, and composition
+   //cons[density,eint,0,0,mass_frac] : special cons array
    double rho = cons[DDD];
    double rhoe = rho*cons[TAU];
    double pre = (GAMMA_LAW-1.0)*rhoe;
 
-   int q;
    double x[NUM_I],abar,zbar;
-   for( q=0 ; q<NUM_I ; q++ ){ x[q]=prim[XXX+q]; }
+   for( int q=0 ; q<NUM_I ; q++ ){ x[q]=prim[XXX+q]; }
    azbar(x,&abar,&zbar);
 
    double elec_plus_ions = 1.+zbar;
    double n = elec_plus_ions*rho*n_A/abar; //OG superCrude is 1/m_p
 
    return pre / (n * k_B);
+}
+
+void get_derivs( double * prim , double * T , double * derivs ){
+   //Get dpd, dpt, dsd, and dst given density, temperature, and composition
+   //derivs[0] = dpd = change in pressure w.r.t. density
+   //derivs[1] = dpt = change in pressure w.r.t. temperature
+   //derivs[2] = dsd = change in specific entropy w.r.t. density
+   //derivs[3] = dst = change in specific entropy w.r.t. temperature
+
+   derivs[0] = 0.0;
+   derivs[1] = 0.0;
+   derivs[2] = 0.0;
+   derivs[3] = 0.0;
 }
 
 void prim2cons( double * prim , double * cons , double GMr , double dV , double * T ){
