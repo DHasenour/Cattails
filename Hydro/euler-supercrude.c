@@ -26,7 +26,7 @@ void setHydroParams( struct domain * theDomain ){
    rt_D = theDomain->theParList.rt_D;
 }
 
-void init_eos( char * path2table ){
+void init_eos( int path ){
    //Needed for tabulated Helmeos
 }
 

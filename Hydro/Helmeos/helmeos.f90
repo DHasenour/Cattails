@@ -1,10 +1,10 @@
-      subroutine INIT_HELMEOS(path2table)
+      subroutine INIT_HELMEOS(path)
       include 'implno.dek'
       include 'vector_eos.dek'
 
-      character(len=20) path2table
+      integer     path
 
-      call read_helm_table(path2table)
+      call read_helm_table(path)
 
       end
 
@@ -843,7 +843,7 @@
 
 
 !---------------------------------------------------------------------
-      subroutine read_helm_table(path2table)
+      subroutine read_helm_table(path)
       include 'implno.dek'
       include 'helm_table_storage.dek'
 
@@ -852,13 +852,22 @@
 
 ! declare local variables
       logical          file_exists
-      integer          i,j
+      integer          i,j,path
       double precision tsav,dsav,dth,dt2,dti,dt2i,dt3i, &
                        dd,dd2,ddi,dd2i,dd3i
-      character(len=20) path2table
+      character(len=40) filedat
+      character(len=40) filebin
 
-!      path2table = 'Hydro/Helmeos/'
-
+      if (path == 1) then
+            filedat = 'Hydro/Helmeos/helm_table.dat'
+            filebin = 'Hydro/Helmeos/helm_table.bin'
+      else if (path == 2) then
+            filedat = '../../Hydro/Helmeos/helm_table.dat'
+            filebin = '../../Hydro/Helmeos/helm_table.bin'
+      else
+            filedat = 'helm_table.dat'
+            filebin = 'helm_table.bin'
+      end if 
 
 ! for standard table limits
 ! temperature
@@ -917,12 +926,12 @@
 
 ! see if a binary version exists
 
-       inquire(file=path2table // 'helm_table.bin', exist=file_exists)
+       inquire(file=filebin, exist=file_exists)
 
 ! if the binary file exists, read it
        if (file_exists) then
 !        write(6,*) 'reading binary helm table file'
-        open(unit=18,file=path2table // 'helm_table.bin',form='unformatted',status='old')
+        open(unit=18,file=filebin,form='unformatted',status='old')
         read(18) f
         read(18) fd
         read(18) ft
@@ -954,14 +963,14 @@
 
 
 ! see if the ascii file exists
-        inquire(file=path2table // 'helm_table.dat', exist=file_exists)
+        inquire(file=filedat, exist=file_exists)
         if (.not.file_exists) then
           stop 'helm table does not exist'
         else
 
 ! ascii file exists. first read it
 !         write(6,*) 'reading ascii helm table file'
-         open(unit=19,file=path2table // 'helm_table.dat',status='old')
+         open(unit=19,file=filedat,status='old')
 
 ! read the helmholtz free energy and its derivatives
          do j=1,jmax
@@ -997,7 +1006,7 @@
 
 ! create a binary file for future use
 !         write(6,*) 'writing binary file'
-         open(unit=18,file=path2table // 'helm_table.bin',form='unformatted')
+         open(unit=18,file=filebin,form='unformatted')
          write(18) f
          write(18) fd
          write(18) ft

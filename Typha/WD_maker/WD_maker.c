@@ -2,7 +2,7 @@
 #include "../../paul.h"
 
 //functions from euler-'EOS'.c
-void init_eos( char * );
+void init_eos( int );
 double get_pre( double * , double * );
 double get_entr( double * , double * );
 void get_derivs( double * , double * , double * );
@@ -17,18 +17,18 @@ void getmasses( double , double , double * , double * , int );
 ///////////////////////////////////////////////////////////
 
 int main( int argc, char *argv[] ){
-   init_eos("../../Hydro/Helmeos/");
+   init_eos(2);
 
    //mode: 0 = WD finder ; 1 = WD init 
    int mode = 0;
 
    //Desired White Dwarf properties
    double mass_total = 1.00 * Msun;
-   double mass_shell = 0.05 * Msun;
+   double mass_shell = 0.050 * Msun;
 
    //Initial Guesses
-   double den_core = 3.33374669705726e+07;
-   double den_He = 1.24201286546811e+06;
+   double den_core = 3.38766250916895e+07;
+   double den_He = 3.02959338351348e+05;
 
    if( mode == 0 ){
       getdensities( mass_total , mass_shell , &den_core , &den_He );

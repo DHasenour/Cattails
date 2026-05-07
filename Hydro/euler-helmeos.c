@@ -9,7 +9,7 @@ static double rt_B = 0.0;
 static double rt_C = 0.0;
 static double rt_D = 0.0;
 
-void init_helmeos_( char * );
+void init_helmeos_( int * );
 void getcons_( double * , double * , double * , double * , double * , double * , double * , double * );
 void getprim_( double * , double * , double * , double * , double * , double * , double * );
 void getambient_( double * , double * , double * , double * , double * , double * , double * , double * , double * , double * );
@@ -26,11 +26,13 @@ void setHydroParams( struct domain * theDomain ){
    rt_D = theDomain->theParList.rt_D;
 }
 
-void init_eos( char * path2table ){
+void init_eos( int path ){
    //Read in the helm_table (only need to do per execution)
-   //Input the directory information
-   // "" , "Hydro/Helmeos/" , or "../../Hydro/Helmeos/"
-   init_helmeos_( path2table );
+   //(int)path determines the directory path to helm_table
+   // path = 0 : 'helm_table.dat' 
+   // path = 1 : 'Hydro/Helmeos/helm_table.dat'
+   // path = 2 : '../../Hydro/Helmeos/helm_table.dat'
+   init_helmeos_( &path );
 }
 
 void azbar( double * X , double * abar , double * zbar ){
