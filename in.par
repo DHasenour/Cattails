@@ -10,7 +10,7 @@ Num_Checkpoints		100
 Use_Logtime		0
 
 //Grid Dimensions//
-Num_R			32768
+Num_R			65536
 R_Min			0.0
 R_Max			2e11
 Log_Zoning		3 //1	//0=Uniform, 1=Log, 2=Hybrid, 3=Hybrid5050, 4=Checkpoint
