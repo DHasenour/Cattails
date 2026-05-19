@@ -46,10 +46,10 @@ int main( int argc , char * argv[] ){
    char filename[] = "output.dat";
    
    //           Crop parameters : homologous expansion fit                //
-   double crop_r_lo = 1e6;
-   double crop_r_hi = 5.9e10;
+   double crop_r_lo = 3e7;
+   double crop_r_hi = 3.2e10;
 
-   int nL_sedona = 137;
+   int nL_sedona = 200;
    char outfilename[] = "initial.mod";
 
    /////////////////////////////////////////////////////////////////////////
@@ -189,109 +189,127 @@ int main( int argc , char * argv[] ){
    double Mtot = miph[nL-1];
    double mass_enc;
    double bucket_mass = Mtot/(double)nL_sedona;
+   int nL_bucket = 0, nL_guess = nL_sedona;
 
-   FILE * fpp = fopen( outfilename , "w" );
-   fprintf(fpp,"1D_sphere standard\n");
-   fprintf(fpp,"%d 0.0 %e 13\n",nL_sedona-1,t_exp);
-   fprintf(fpp,"2.4 6.12 8.16 10.20 12.24 14.28 16.32 18.36 20.40 22.44 24.48 26.52 28.56\n");
-   fclose(fpp);
+   for( int j=0 ; j<100 ; j++ ){
+      nL_bucket = 0;
+      bucket_mass = Mtot/(double)nL_guess;
 
-   double rp, rm, dV, GMr, T, rp_bin, rm_bin=0.0;
-   double M,r2_3,r4_5,mt;
-   double prim[NUM_Q],cons[NUM_Q],prim_bin[NUM_Q],cons_bin[NUM_Q];
-   for( int i=0 ; i<NUM_Q ; ++i ){ cons_bin[i] = 0; }
-   int left = 0;
-   int ilog = 0;
-   for( int l=0 ; l<nL ; l++){
-      FILE * fpp = fopen( outfilename , "a" );
+      FILE * fpp = fopen( outfilename , "w" );
+      fprintf(fpp,"1D_sphere standard\n");
+      fprintf(fpp,"%d 0.0 %e 13\n",nL_sedona,t_exp);
+      fprintf(fpp,"2.4 6.12 8.16 10.20 12.24 14.28 16.32 18.36 20.40 22.44 24.48 26.52 28.56\n");
+      fclose(fpp);
 
-      //get volume//
-      rp = rr[l] + 0.5*dr[l];
-      rm = rp - dr[l];
-      dV = get_dV( rp , rm );
-
-      //get GMr//
-      M = miph[l] - rho[l]*dV;
-      r2_3 = (rp*rp + rm*rm + rp*rm)/3.;
-      r4_5 = (pow(rp,4.) + pow(rp,3.)*rm + rp*rp*rm*rm + rp*pow(rm,3.) + pow(rm,4.) )/5.;
-      mt = M - 4./3.*M_PI*rm*rm*rm*rho[l];
-      GMr = grav_G/r2_3*( mt*rr[l] + 4./3.*M_PI*rho[l]*r4_5 );
-
-      //prim2cons
-      prim[RHO]      = rho[l];
-      prim[PPP]      = Pp[l];
-      prim[VRR]      = vr[l];
-      prim[AAA]      = XXA[l];
-      prim[XXX]      = XX0[l];
-      prim[XXX+1]    = XX1[l];
-      prim[XXX+2]    = XX2[l];
-      prim[XXX+3]    = XX3[l];
-      prim[XXX+4]    = XX4[l];
-      prim[XXX+5]    = XX5[l];
-      prim[XXX+6]    = XX6[l];
-      prim[XXX+7]    = XX7[l];
-      prim[XXX+8]    = XX8[l];
-      prim[XXX+9]    = XX9[l];
-      prim[XXX+10]   = X10[l];
-      prim[XXX+11]   = X11[l];
-      prim[XXX+12]   = X12[l];
-      T = Temp[l];
-
-      prim2cons(prim, cons, GMr, dV, &T);
-
-      //fill the bucket//
-      for( int i=0 ; i<NUM_Q ; ++i ){ cons_bin[i] += cons[i]; }
-
-      //check if we reached mass bucket//
-      if( cons_bin[DDD] >= bucket_mass ){  //skip final bucket
-      //if( cons_bin[DDD] >= bucket_mass || l == nL-1 ){  //write out final bucket
-         printf("writing line %d\n",l);
-
-         //bucket_mass = Mtot/log(10)*((10.-pow(10.,1./(double)nL_sedona))/((double)nL_sedona-1.));
-         //bucket_mass /= ((double)ilog/((double)nL_sedona-1.))*(10.-pow(10.,1./(double)nL_sedona)) + pow(10.,1./(double)nL_sedona);
-         printf("Bucket size %e\n",bucket_mass);
-         //bucket_mass = Mtot/(double)nL_sedona;
-         
-         bucket_mass = -log10((double)ilog/((double)nL_sedona)*(10.-pow(10.,1./(double)nL_sedona))+pow(10.,1./(double)nL_sedona));
-         ilog++;
-         bucket_mass += log10((double)ilog/((double)nL_sedona)*(10.-pow(10.,1./(double)nL_sedona))+pow(10.,1./(double)nL_sedona));
-         bucket_mass *= Mtot;
+      double rp, rm, dV, GMr, T, rp_bin, rm_bin=0.0;
+      double M,r2_3,r4_5,mt;
+      double prim[NUM_Q],cons[NUM_Q],prim_bin[NUM_Q],cons_bin[NUM_Q];
+      for( int i=0 ; i<NUM_Q ; ++i ){ cons_bin[i] = 0; }
+      int left = 0;
+      int ilog = 0;
+      for( int l=0 ; l<nL ; l++){
+         FILE * fpp = fopen( outfilename , "a" );
 
          //get volume//
-         rp_bin = rr[l] + 0.5*dr[l];
-         rm_bin = rr[left] - 0.5*dr[left];
-         dV = get_dV( rp_bin , rm_bin );
+         rp = rr[l] + 0.5*dr[l];
+         rm = rp - dr[l];
+         dV = get_dV( rp , rm );
 
          //get GMr//
-         M = miph[left-1];
+         M = miph[l] - rho[l]*dV;
          r2_3 = (rp*rp + rm*rm + rp*rm)/3.;
          r4_5 = (pow(rp,4.) + pow(rp,3.)*rm + rp*rp*rm*rm + rp*pow(rm,3.) + pow(rm,4.) )/5.;
-         mt = M - 4./3.*M_PI*rm*rm*rm*cons_bin[DDD]/dV;
-         GMr = grav_G/r2_3*( mt*0.5*(rp_bin+rm_bin) + 4./3.*M_PI*cons_bin[DDD]/dV*r4_5 );
+         mt = M - 4./3.*M_PI*rm*rm*rm*rho[l];
+         GMr = grav_G/r2_3*( mt*rr[l] + 4./3.*M_PI*rho[l]*r4_5 );
 
-         cons2prim(cons_bin, prim_bin, GMr, dV, &T);
+         //prim2cons
+         prim[RHO]      = rho[l];
+         prim[PPP]      = Pp[l];
+         prim[VRR]      = vr[l];
+         prim[AAA]      = XXA[l];
+         prim[XXX]      = XX0[l];
+         prim[XXX+1]    = XX1[l];
+         prim[XXX+2]    = XX2[l];
+         prim[XXX+3]    = XX3[l];
+         prim[XXX+4]    = XX4[l];
+         prim[XXX+5]    = XX5[l];
+         prim[XXX+6]    = XX6[l];
+         prim[XXX+7]    = XX7[l];
+         prim[XXX+8]    = XX8[l];
+         prim[XXX+9]    = XX9[l];
+         prim[XXX+10]   = X10[l];
+         prim[XXX+11]   = X11[l];
+         prim[XXX+12]   = X12[l];
+         T = Temp[l];
 
-         //////////////////////////////////////////////////////////
-         //Hydro Comparison
-         //fprintf(fpp,"%.14e %.14e %.14e %.14e ",0.5*(rp_bin+rm_bin),prim_bin[VRR],prim_bin[RHO],T);
-         
-         //Velocity is local fluid velocity
-         fprintf(fpp,"%.14e %.14e %.14e %.14e ",rp_bin,vr[l],prim_bin[RHO],T);
-         
-         //Velocity is homologous -- no temp recalc
-         //fprintf(fpp,"%.14e %.14e %.14e %.14e ",rp_bin,rp_bin/t_exp,prim_bin[RHO],T);
-         //////////////////////////////////////////////////////////
-         
-         for( int i=0 ; i<NUM_I ; ++i ){ fprintf(fpp,"%.14e ",prim_bin[XXX+i]); }
-         fprintf(fpp,"\n");
+         prim2cons(prim, cons, GMr, dV, &T);
 
-         //empty the bucket//
-         printf("Empty %e grams\n",cons_bin[DDD]);
-         for( int i=0 ; i<NUM_Q ; ++i ){ cons_bin[i] = 0; }
-         left = l+1;
+         //fill the bucket//
+         for( int i=0 ; i<NUM_Q ; ++i ){ cons_bin[i] += cons[i]; }
+
+         //check if we reached mass bucket//
+         if( cons_bin[DDD] >= bucket_mass ){  //skip final bucket
+         //if( cons_bin[DDD] >= bucket_mass || l == nL-1 ){  //write out final bucket
+            //printf("writing line %d\n",l);
+
+            //bucket_mass = Mtot/log(10)*((10.-pow(10.,1./(double)nL_guess))/((double)nL_guess-1.));
+            //bucket_mass /= ((double)ilog/((double)nL_guess-1.))*(10.-pow(10.,1./(double)nL_guess)) + pow(10.,1./(double)nL_guess);
+            
+            //bucket_mass = Mtot/(double)nL_guess;
+            
+            bucket_mass = -log10((double)ilog/((double)nL_guess)*(10.-pow(10.,1./(double)nL_guess))+pow(10.,1./(double)nL_guess));
+            ilog++;
+            bucket_mass += log10((double)ilog/((double)nL_guess)*(10.-pow(10.,1./(double)nL_guess))+pow(10.,1./(double)nL_guess));
+            bucket_mass *= Mtot;
+
+            //printf("Bucket size %e\n",bucket_mass);
+
+            //get volume//
+            rp_bin = rr[l] + 0.5*dr[l];
+            rm_bin = rr[left] - 0.5*dr[left];
+            dV = get_dV( rp_bin , rm_bin );
+
+            //get GMr//
+            M = miph[left-1];
+            r2_3 = (rp*rp + rm*rm + rp*rm)/3.;
+            r4_5 = (pow(rp,4.) + pow(rp,3.)*rm + rp*rp*rm*rm + rp*pow(rm,3.) + pow(rm,4.) )/5.;
+            mt = M - 4./3.*M_PI*rm*rm*rm*cons_bin[DDD]/dV;
+            GMr = grav_G/r2_3*( mt*0.5*(rp_bin+rm_bin) + 4./3.*M_PI*cons_bin[DDD]/dV*r4_5 );
+
+            cons2prim(cons_bin, prim_bin, GMr, dV, &T);
+
+            //////////////////////////////////////////////////////////
+            //Hydro Comparison
+            //fprintf(fpp,"%.14e %.14e %.14e %.14e ",0.5*(rp_bin+rm_bin),prim_bin[VRR],prim_bin[RHO],T);
+            
+            //Velocity is local fluid velocity
+            fprintf(fpp,"%.14e %.14e %.14e %.14e ",rp_bin,vr[l],prim_bin[RHO],T);
+            
+            //Velocity is homologous -- no temp recalc
+            //fprintf(fpp,"%.14e %.14e %.14e %.14e ",rp_bin,rp_bin/t_exp,prim_bin[RHO],T);
+            //////////////////////////////////////////////////////////
+            
+            for( int i=0 ; i<NUM_I ; ++i ){ fprintf(fpp,"%.14e ",prim_bin[XXX+i]); }
+            fprintf(fpp,"\n");
+
+            //empty the bucket//
+            //printf("Empty %e grams\n",cons_bin[DDD]);
+            for( int i=0 ; i<NUM_Q ; ++i ){ cons_bin[i] = 0; }
+            left = l+1;
+            ++nL_bucket;
+         }
+         fclose(fpp);
+      }
+      printf("Total number of buckets %d : Guessing %d\n",nL_bucket, nL_guess);
+
+      if( nL_bucket == nL_sedona ){
+         printf("SUCCESS : exiting loop\n");
+         break;
+      } else {
+         nL_guess += nL_sedona - nL_bucket; 
+         //and go again
       }
 
-      fclose(fpp);
    }
 
    /////////////////////////////////////////////////////////////////////////   

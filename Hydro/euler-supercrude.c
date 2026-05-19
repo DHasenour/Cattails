@@ -15,6 +15,10 @@ double superCrude_get_cs2( double , double , double , double );
 double superCrude_get_Temp( double , double , double , double );
 double superCrude_get_Entropy( double , double , double , double );
 double superCrude_get_Temp_fromPre( double , double , double , double );
+double P_deriv_T( double , double , double , double );
+double P_deriv_rho( double , double , double , double );
+double S_deriv_T( double , double , double , double );
+double S_deriv_rho( double , double , double , double );
 
 void setHydroParams( struct domain * theDomain ){
    RHO_FLOOR = theDomain->theParList.Density_Floor;
@@ -397,6 +401,23 @@ double get_fermi( double rho , double T , double A , double Z , int mode ){
 
 }
 
+double get_fermi_deriv( double rho , double T , double A , double Z , int mode ){
+
+   double ne;
+   if( mode == 0 ) ne = Z*rho*n_A/A; else ne = rho*n_A/A;
+   double pF = pow(3.*M_PI*M_PI*ne,1./3.)*hbar;
+   double x = pF/m_e/c_light;
+ 
+   double ne_deriv;
+   if( mode == 0 ) ne_deriv = Z*n_A/A; else ne_deriv = n_A/A;
+   double pF_deriv = hbar*pow(3.*M_PI*M_PI*ne,1./3.)/3./ne*ne_deriv;
+
+   double eF_deriv = c_light*x/sqrt(1.+x*x)*pF_deriv;
+   
+   return(eF_deriv);
+
+}
+
 double P_deg( double rho , double A , double Z ){
 
    double ne = Z*rho*n_A/A;
@@ -565,16 +586,26 @@ double P_deriv_T( double rho , double T , double A , double Z ){
 double P_deriv_rho( double rho , double T , double A , double Z ){
    
    double eF = get_fermi( rho , T , A , Z , 0 );
+   double eF1 = get_fermi_deriv( rho , T , A , Z , 0 );
    double T0 = 6./M_PI/M_PI*eF/k_B;
 
    double elec_plus_ions = 1.+Z;
    if( include_deg_factor ) elec_plus_ions = 1. + Z*(T/(T+T0));
+   double n = elec_plus_ions*rho*n_A/A;
+
    double n1 = elec_plus_ions*n_A/A;
+   if( include_deg_factor ) n1 -= rho*Z*n_A/A*T/(T+T0)/(T+T0)*6/M_PI/M_PI*eF1/k_B;
    
+
+   double ne = Z*rho*n_A/A;
+   double pF = hbar*pow( 3.*M_PI*M_PI*ne , 1./3. );
+   double gamPdeg = 1./3.*ne*pF*pF*c_light/sqrt( m_e*m_e*c_light*c_light + pF*pF );
+
    double P1gas = n1*k_B*T;
    double P1rad = 0.0;
+   double P1deg = gamPdeg;
 
-   return( P1gas + P1rad );
+   return( P1gas + P1rad + P1deg );
 
 }
 

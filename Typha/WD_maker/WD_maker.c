@@ -27,8 +27,8 @@ int main( int argc, char *argv[] ){
    double mass_shell = 0.050 * Msun;
 
    //Initial Guesses
-   double den_core = 3.38766250916895e+07;
-   double den_He = 3.02959338351348e+05;
+   double den_core = 3.33374669687980e+07;
+   double den_He = 1.24201160233603e+06;
 
    if( mode == 0 ){
       getdensities( mass_total , mass_shell , &den_core , &den_He );

@@ -25,7 +25,7 @@ Max_Aspect_Long         0.0   //Short/Long=0 turns off AMR
 CFL			0.2
 PLM			1.0
 Riemann_Solver		1	//0=HLL, 1=HLLC
-Mesh_Motion		0	//0=Fixed, 1=By Cell, 2=Riemann Solver
+Mesh_Motion		1	//0=Fixed, 1=By Cell, 2=Riemann Solver
 Density_Floor		0.0
 Pressure_Floor		1e-8 //1e-20
 Absorb_Inner		0
