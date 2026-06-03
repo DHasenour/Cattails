@@ -14,6 +14,7 @@ void getcons_( double * , double * , double * , double * , double * , double * ,
 void getprim_( double * , double * , double * , double * , double * , double * , double * );
 void getambient_( double * , double * , double * , double * , double * , double * , double * , double * , double * , double * );
 void getpppeos_( double * , double * , double * , double * , double * , double * , double * , double * , double * , double * , double * , double * );
+void getederivs_( double * , double * , double * , double * , double * , double * , double * , double * );
 void gettempfromentropy_( double * , double * , double * , double * , double * );
 
 void setHydroParams( struct domain * theDomain ){
@@ -154,6 +155,23 @@ void get_derivs( double * prim , double * T , double * derivs ){
    derivs[1] = dpt;
    derivs[2] = dsd;
    derivs[3] = dst;
+}
+
+void get_Ederivs( double * prim , double * T , double * derivs ){
+   //Get dedT, dedA, and dedZ given density, temperature, and composition
+   //derivs[0] = dedT = change in eint w.r.t. temperature
+   //derivs[1] = dedA = change in eint w.r.t. abar
+   //derivs[2] = dedZ = change in eint w.r.t. zbar
+   double rho = prim[RHO];
+   double temp,x[NUM_I],etot,dedT,dedA,dedZ,abar,zbar;
+   for( int q=0 ; q<NUM_I ; q++ ){ x[q]=prim[XXX+q]; }
+   temp = *T;
+   azbar(x,&abar,&zbar);
+   getederivs_(&rho,&temp,&abar,&zbar,&etot,&dedT,&dedA,&dedZ);
+   
+   derivs[0] = dedT;
+   derivs[1] = dedA;
+   derivs[2] = dedZ;
 }
 
 void prim2cons( double * prim , double * cons , double GMr , double dV , double * T ){

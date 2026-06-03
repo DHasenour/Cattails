@@ -155,6 +155,32 @@
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+subroutine GETEDERIVS(den,temp,abar,zbar,etot,dedT,dedA,dedZ)
+      include 'implno.dek'
+      include 'vector_eos.dek'
+
+      double precision den,temp,abar,zbar,etot,dedT,dedA,dedZ
+
+! Setup arrays for helmeos
+      den_row(1)  = den
+      temp_row(1) = temp
+      abar_row(1) = abar ; zbar_row(1) = zbar
+      jlo_eos = 1 ; jhi_eos = 1
+
+      !call read_helm_table
+      call helmeos
+
+! Update values and send back to c
+      etot = etot_row(1)
+      dedT = det_row(1)
+      dedA = dea_row(1)
+      dedZ = dez_row(1)
+
+      end  
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
  subroutine GETTEMPFROMENTROPY(den,stot,abar,zbar,temp)
       include 'implno.dek'
       include 'vector_eos.dek'

@@ -114,7 +114,7 @@ void initial( double * prim , double r , double * T ){
    *T = temp;
 
    //IGNITE CELLS//  
-   
+   /*
    double r_ignition = 4.5e8;
    double width = 2.5e6;     //one gaussian sigma
    double temp_peak = 2e9;
@@ -123,7 +123,7 @@ void initial( double * prim , double r , double * T ){
       prim[PPP] = get_pre( prim , &temp );
       *T = temp;
    }
-   
+   */
    /////////////////////////////////////////////////
    /*
    double r_ignition = 5.1e8;
@@ -136,17 +136,17 @@ void initial( double * prim , double r , double * T ){
    *T = temp;
    */
    /////////////////////////////////////////////////
-   /*
+   
    int q;
    double etot = 0.0, ebind1 = 0.0, ebind2 = 0.0;
    etot = get_eint( prim , &temp );
    for( q=0 ; q<NUM_I ; ++q ){ ebind1 += EBIND[q]*prim[q+XXX]; }
 
    double r_ignition = 4.976e8;
-   double width = 1.25e6;//1e6;//2e6;
-   double flip = 0.3;//20% He4 to C12
-   double frac_flip = flip*pow(M_PI,-(rr[l]-r_ignition)*(rr[l]-r_ignition)/(.25*width*width));
-   if( fabs(rr[l]-r_ignition)<2*width ){
+   double width = 1.25e6;//2e6;
+   double flip = 0.3;//30% He4 to C12
+   double frac_flip = flip*pow(M_PI,-(rr[l]-r_ignition)*(rr[l]-r_ignition)/(2*width*width));
+   if( fabs(rr[l]-r_ignition)<4*width ){
       //Flip to nickel
       //prim[XXX+12] += prim[XXX]*frac_flip;
       //prim[XXX+12] += prim[XXX+1]*frac_flip;
@@ -193,7 +193,6 @@ void initial( double * prim , double r , double * T ){
       prim[PPP] = get_pre_from_etot( prim , &temp );
       *T = temp;
    }
-   */
    
    /////////////////////////////////////////////////////
    /*

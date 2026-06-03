@@ -27,6 +27,7 @@ void output( struct domain * theDomain , char * filestart ){
 
    if( rank==0 ){
       FILE * pFile = fopen( filename , "w" );
+      fprintf(pFile,"#time: %.14e\n",theDomain->t);
       fprintf(pFile,"#r:1   dr:2   Density:3   Pressure:4   Velocity:5   Alpha:6   X_He:7 - X_Ni:NUM_I+6   M_enc:NUM_I+7   Entropy:NUM_I+8   Temperature:NUM_I+9   cs:NUM_I+10   etot:NUM_I+11\n");
       fclose(pFile);
    }

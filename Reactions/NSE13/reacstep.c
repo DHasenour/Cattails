@@ -14,6 +14,8 @@ void calc_prim( struct domain * );
 void boundary( struct domain * );
 void exchangeData( struct domain * );
 
+void get_actual_nse_state( double * , double , double , double );
+
 void derivs(double[],double[],double,double);
 void jacobn(double[],double[][NUM_I],double,double);
 
@@ -142,7 +144,7 @@ void odeint( double ystart[] , double dt , double rho , double T ){
       e_int-=cons[XXX+i]*EBIND[i];
     }
     cons[TAU] = e_int;
-    temp = get_temp_cons( cons , &temp );
+    //temp = get_temp_cons( cons , &temp );
 
 //////////////////////////////////////////////////////////////////////////////////
     if (norder==2) {
@@ -349,15 +351,17 @@ void odeint( double ystart[] , double dt , double rho , double T ){
     }
   }
   //printf("nok = %d  nbad = %d\n",nok,nbad);
+  //printf("ODEINT T : %e\n",temp);
 }
 
-void reacstep( struct domain * theDomain , double dt ) {
+void reacstep( struct domain * theDomain , double dt ){
   double rho , T , ystart[NUM_I];
   double cs;
   struct cell * theCells = theDomain->theCells;
   int Nr = theDomain->Nr;
   int i, j;
   double rm , rp , dV; 
+  int NSE_flag;
 
   if( USE_RN ){
     /*
@@ -379,14 +383,26 @@ void reacstep( struct domain * theDomain , double dt ) {
     */
 
     //Loop over cells
-    for( i=0 ; i<Nr ; ++i ) {
+    for( i=0 ; i<Nr ; ++i ){
       struct cell * c = theCells+i;
 
       rho = c->prim[RHO];
       T = get_temp( c->prim , &c->T );
       for( j=0 ; j<NUM_I ; ++j ){ ystart[j] = c->prim[XXX+j]/aion[j]; }
 
-      if( T>1.1e7 && T<9.0e9 ){ odeint( ystart , dt , rho , T ); }
+      NSE_flag = 0; //check_NSE();
+
+      if( NSE_flag == 1 ){
+        get_actual_nse_state( ystart , rho , T , 1.0e-10 );
+      }
+      else if( T>1.1e7 && T<9.0e9 ){
+        odeint( ystart , dt , rho , T );
+      }
+      else{
+        //Reactions are frozen this timestep
+      }
+
+      //if( T>1.1e7 && T<9.0e9 ){ odeint( ystart , dt , rho , T ); }
       //if( T>1.1e7 & c->riph>1e7 ){ odeint( ystart , dt , rho , T ); }
       //if( T>1.1e7 ){ odeint( ystart , dt , rho , T ); }
       //odeint( ystart , dt , rho , T );
@@ -394,7 +410,7 @@ void reacstep( struct domain * theDomain , double dt ) {
       rp = c->riph;
       rm = rp-c->dr;
       dV = get_dV( rp , rm );
-      for( j=0 ; j<NUM_I ; ++j ){ c->cons[XXX+j] = ystart[j]*rho*dV*aion[j];}
+      for( j=0 ; j<NUM_I ; ++j ){ c->cons[XXX+j] = ystart[j]*rho*dV*aion[j]; }
     }
     calc_prim( theDomain );
     boundary( theDomain );

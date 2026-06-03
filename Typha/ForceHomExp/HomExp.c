@@ -46,10 +46,10 @@ int main( int argc , char * argv[] ){
    char filename[] = "output.dat";
    
    //           Crop parameters : homologous expansion fit                //
-   double crop_r_lo = 3e7;
-   double crop_r_hi = 3.2e10;
+   double crop_r_lo = 1e7;
+   double crop_r_hi = 1e11;
 
-   int nL_sedona = 200;
+   int nL_sedona = 500;
    char outfilename[] = "initial.mod";
 
    /////////////////////////////////////////////////////////////////////////
@@ -165,6 +165,7 @@ int main( int argc , char * argv[] ){
    // Numerical Recipes in C -- Chap 15.2 //
    //x = logr , y = logr , sig = 1/weight^2 = logs , log(vr) = P1*log(rr) + P0
    double wt, t, sxoss, sx=0, sy=0, st2=0, ss=0, P1=0, P0;
+   double b; //fixed slope = P1 = 1
 
    for( int i=0 ; i<nL_trimmed ; i++ ){ //...with weights
       wt=1.0/sqrt(logs[i]);
@@ -180,10 +181,12 @@ int main( int argc , char * argv[] ){
    }
    P1 /= st2;
    P0 = (sy-sx*P1)/ss;
+   b = (sy-sx)/ss;
    
-   double t_exp = pow(10.,-P0/P1);
-   printf("Homologous Expansion Fit: P1, P0 = %e, %e\n",P1,P0);
-   printf("Time since explosion: t_exp = %e\n\n",t_exp);
+   printf("Homologous Expansion Fit: P1, P0, t_exp = %e, %e, %e\n",P1,P0,pow(10.,-P0/P1));
+   printf("Fixed Slope Fit: b, t_exp = %e, %e\n\n",b,pow(10.,-b));
+   //double t_exp = pow(10.,-P0/P1);
+   double t_exp = pow(10.,-b);
 
    /////////////////////////////////////////////////////////////////////////
    double Mtot = miph[nL-1];
