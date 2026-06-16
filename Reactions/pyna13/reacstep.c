@@ -386,7 +386,7 @@ void reacstep( struct domain * theDomain , double dt ) {
       T = get_temp( c->prim , &c->T );
       for( j=0 ; j<NUM_I ; ++j ){ ystart[j] = c->prim[XXX+j]/aion[j]; }
 
-      if( T>1.1e7 && T<9.0e9 ){ odeint( ystart , dt , rho , T ); }
+      if( T>1.1e7 && T<9.e9 ){ odeint( ystart , dt , rho , T ); }
       //if( T>1.1e7 & c->riph>1e7 ){ odeint( ystart , dt , rho , T ); }
       //if( T>1.1e7 ){ odeint( ystart , dt , rho , T ); }
       //odeint( ystart , dt , rho , T );

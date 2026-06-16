@@ -20,24 +20,40 @@ int main( int argc, char *argv[] ){
    init_eos(2);
 
    //mode: 0 = WD finder ; 1 = WD init 
-   int mode = 0;
+   int mode = 0; 
+
+   double mtot,mshell;
+   if( argc == 3 ){
+      //If provided: set mtot and mshell from terminal
+      mtot = strtod(argv[1], NULL); // convert string to a float
+      mshell = strtod(argv[2], NULL);
+   }else{
+      //defaults
+      mtot = 1.00;
+      mshell = 0.050;
+   }
 
    //Desired White Dwarf properties
-   double mass_total = 1.00 * Msun;
-   double mass_shell = 0.050 * Msun;
+   double mass_total = mtot*Msun;
+   double mass_shell = mshell*Msun;
 
    //Initial Guesses
-   double den_core = 3.33374669687980e+07;
-   double den_He = 1.24201160233603e+06;
+   double den_core = 1.e7;
+   double den_He = 1.e6;
 
    if( mode == 0 ){
-      getdensities( mass_total , mass_shell , &den_core , &den_He );
+      printf("\nfinding WD with total mass %.5f Msun and shell mass %.5f Msun ... \n", mtot, mshell);
       //if converged... write out WD
-      mode = 1;
+      printf("iteration, denCore, denShell, total mass, shell mass, eoswrk01\n");
+      printf("-------------------------------------------\n");
+      getdensities( mass_total , mass_shell , &den_core , &den_He );
+      mode = 1; // now make the actual WD
    }
 
    if( mode == 1 ){
+      printf("\ninitializing WD with core and shell densities %.5e and %.5e \n", den_core, den_He);
       getmasses( den_core , den_He , &mass_total , &mass_shell , mode );
+      printf("saving to file...\n");
    }
 
    return(0);
@@ -66,7 +82,8 @@ void getmasses( double den_core, double den_shell , double * mas_total , double 
    double den_csmtran = 0; //idk
    double den_cut = 1e-3; //idk
    /////////////////////////////////////////
-
+   // printf("Tcore = %.1e K, delta = %.4e cm, Tbase = %.4e K, temp at CSM transition = %.4e K\n", temp_core, delta, temp_base, temp_csmtran);
+   // printf("rmin = %.4e cm, rmax = %.4e cm, lin to log trans = %.4e cm, fraction of linear zones = %.4f\n", Rmin, Rmax, R0, f);
    char out_name[256] = "initial.dat";
    FILE * pFile = fopen(out_name,"w"); 
 
@@ -317,7 +334,7 @@ void getdensities( double mass_total , double mass_shell , double * den_core , d
 
    int converged = 0;
    // Loop over the remaining steps //
-   for( i=2 ; i<101 ; i++ ){
+   for( i=2 ; i<21 ; i++ ){
       if( eoswrk01 < eostol || (fabs(eoswrk02)+fabs(eoswrk03)) < fpmin ) {
          //converged!!!
          converged = 1;
@@ -349,12 +366,19 @@ void getdensities( double mass_total , double mass_shell , double * den_core , d
       denCore = fmin(1e14,fmax(denCorenew,1e-11));
       denShell = fmin(1e14,fmax(denShellnew,1e-11));
    }
+   /*
    if( converged == 0 ){ printf("ERROR:failed to converge\n"); }
    else{ 
       printf("Final: %.14e %.14e\n",denCore,denShell); 
       *den_core = denCore;
       *den_He = denShell;
-   }
+   } 
+   */
+   printf("cutting iterations short... \n");
+   printf("Final: %.14e %.14e\n",denCore,denShell); 
+   *den_core = denCore;
+   *den_He = denShell;
+
 }
 
 double getPPPbalance( double pre_im1 , double den_im1 , double temp , double comp[] , double drgimh ) {
@@ -387,7 +411,7 @@ double getPPPbalance( double pre_im1 , double den_im1 , double temp , double com
    den = fmin(1e14,fmax(dennew,1e-11));
 
    // Loop over the remaining steps //
-   for( i=2 ; i<41 ; i++ ){
+   for( i=2 ; i<101 ; i++ ){
       if( eoswrk01 < eostol || fabs(eoswrk02) < fpmin ) {
          //converged!!!
          return den;
@@ -456,7 +480,7 @@ void getPPPandENTbalance( double pre_im1 , double den_im1 , double S_He , double
    T = fmin(1e13,fmax(tempnew,1e3));
 
    // Loop over the remaining steps //
-   for( i=2 ; i<101 ; i++ ){
+   for( i=2 ; i<6 ; i++ ){
       if( eoswrk01 < eostol || (fabs(eoswrk02)+fabs(eoswrk03)) < fpmin ) {
          //converged!!!
          *density = den;

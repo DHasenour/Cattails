@@ -46,8 +46,8 @@ int main( int argc , char * argv[] ){
    char filename[] = "output.dat";
    
    //           Crop parameters : homologous expansion fit                //
-   double crop_r_lo = 1e7;
-   double crop_r_hi = 1e11;
+   double crop_r_lo = 3e7; //1e7;
+   double crop_r_hi = 1e10; //1e11;
 
    int nL_sedona = 500;
    char outfilename[] = "initial.mod";
@@ -189,6 +189,7 @@ int main( int argc , char * argv[] ){
    double t_exp = pow(10.,-b);
 
    /////////////////////////////////////////////////////////////////////////
+
    double Mtot = miph[nL-1];
    double mass_enc;
    double bucket_mass = Mtot/(double)nL_sedona;
@@ -286,10 +287,10 @@ int main( int argc , char * argv[] ){
             //fprintf(fpp,"%.14e %.14e %.14e %.14e ",0.5*(rp_bin+rm_bin),prim_bin[VRR],prim_bin[RHO],T);
             
             //Velocity is local fluid velocity
-            fprintf(fpp,"%.14e %.14e %.14e %.14e ",rp_bin,vr[l],prim_bin[RHO],T);
+            //fprintf(fpp,"%.14e %.14e %.14e %.14e ",rp_bin,vr[l],prim_bin[RHO],T);
             
             //Velocity is homologous -- no temp recalc
-            //fprintf(fpp,"%.14e %.14e %.14e %.14e ",rp_bin,rp_bin/t_exp,prim_bin[RHO],T);
+            fprintf(fpp,"%.14e %.14e %.14e %.14e ",rp_bin,rp_bin/t_exp,prim_bin[RHO],T);
             //////////////////////////////////////////////////////////
             
             for( int i=0 ; i<NUM_I ; ++i ){ fprintf(fpp,"%.14e ",prim_bin[XXX+i]); }
@@ -314,7 +315,113 @@ int main( int argc , char * argv[] ){
       }
 
    }
+   /*
+   /////////////////////////////////////////////////////////////////////////  
+   //             Convert to homologous expansion 
+   /////////////////////////////////////////////////////////////////////////  
+   t_exp = 5.; //set to 10 sec
 
+   double sed_r_out[nL_sedona];
+   double sed_v_out[nL_sedona];
+   double sed_den[nL_sedona];
+   double sed_temp[nL_sedona];
+   double sed_X00[nL_sedona];
+   double sed_X01[nL_sedona];
+   double sed_X02[nL_sedona];
+   double sed_X03[nL_sedona];
+   double sed_X04[nL_sedona];
+   double sed_X05[nL_sedona];
+   double sed_X06[nL_sedona];
+   double sed_X07[nL_sedona];
+   double sed_X08[nL_sedona];
+   double sed_X09[nL_sedona];
+   double sed_X10[nL_sedona];
+   double sed_X11[nL_sedona];
+   double sed_X12[nL_sedona];
+
+   double wrk01[nL_sedona];
+   double wrk02[nL_sedona];
+
+   // Read in the binned hydro 
+   FILE * fp_sed;
+   char header_buffer_sed[500];
+
+   fp_sed = fopen(outfilename, "r");
+   // Read and discard the entire header line using fgets
+   fgets(header_buffer_sed, sizeof(header_buffer_sed), fp_sed);
+   fgets(header_buffer_sed, sizeof(header_buffer_sed), fp_sed);
+   fgets(header_buffer_sed, sizeof(header_buffer_sed), fp_sed);
+
+   int error_sed;
+   for( int l=0 ; l<nL_sedona ; l++){
+      // Read in the data //
+      error_sed = fscanf(fp,"%le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le %le\n",\
+         &(sed_r_out[l]),&(sed_v_out[l]),&(sed_den[l]),&(sed_temp[l]),\
+         &(sed_X00[l]),&(sed_X01[l]),&(sed_X02[l]),&(sed_X03[l]),&(sed_X04[l]),\
+         &(sed_X05[l]),&(sed_X06[l]),&(sed_X07[l]),&(sed_X08[l]),&(sed_X09[l]),\
+         &(sed_X10[l]),&(sed_X11[l]),&(sed_X12[l]));
+   }
+   fclose(fp_sed);
+
+   // Write out the forced homologous expansion
+   FILE * fp_sed_out = fopen( outfilename , "w" );
+   fprintf(fp_sed_out,"1D_sphere standard\n");
+   fprintf(fp_sed_out,"%d 0.0 %e 13\n",nL_sedona,t_exp);
+   fprintf(fp_sed_out,"2.4 6.12 8.16 10.20 12.24 14.28 16.32 18.36 20.40 22.44 24.48 26.52 28.56\n");
+
+   double vol_old, vol_new;
+   //Get masses
+   for( int l=0 ; l<nL_sedona ; l++){
+      if( l==0 ){ 
+         vol_old = get_dV( sed_r_out[l] , 0.0 );
+      } else{
+         vol_old = get_dV( sed_r_out[l] , sed_r_out[l-1] );
+      }
+      wrk02[l] = sed_den[l]*vol_old;
+   }
+   //Set radius
+   for( int l=0 ; l<nL_sedona ; l++){
+      wrk01[l] = sed_r_out[l] / (sed_v_out[l] * t_exp);
+      sed_r_out[l] = sed_v_out[l] * t_exp;
+   }
+   //Adjust density and temperature
+   for( int l=0 ; l<nL_sedona ; l++){
+      if( l==0 ){ 
+         vol_new = get_dV( sed_r_out[l] , 0.0 );
+      } else{
+         vol_new = get_dV( sed_r_out[l] , sed_r_out[l-1] );
+      }
+
+      //Scaled by r_out
+      sed_den[l] *= pow(wrk01[l],3.);
+      sed_temp[l] *= pow(wrk01[l],2.);
+
+      //Conserving total mass
+      //wrk01[l] = sed_den[l] / (wrk02[l] / vol_new);
+      //sed_den[l] = wrk02[l] / vol_new;
+      //sed_temp[l] *= pow(wrk01[l],2./3.);
+   }
+
+   //Write out
+   for( int l=0 ; l<nL_sedona ; l++){
+      fprintf(fp_sed_out,"%.14e %.14e %.14e %.14e ",sed_r_out[l],sed_v_out[l],sed_den[l],sed_temp[l]);
+      fprintf(fp_sed_out,"%.14e ",sed_X00[l]);
+      fprintf(fp_sed_out,"%.14e ",sed_X01[l]);
+      fprintf(fp_sed_out,"%.14e ",sed_X02[l]);
+      fprintf(fp_sed_out,"%.14e ",sed_X03[l]);
+      fprintf(fp_sed_out,"%.14e ",sed_X04[l]);
+      fprintf(fp_sed_out,"%.14e ",sed_X05[l]);
+      fprintf(fp_sed_out,"%.14e ",sed_X06[l]);
+      fprintf(fp_sed_out,"%.14e ",sed_X07[l]);
+      fprintf(fp_sed_out,"%.14e ",sed_X08[l]);
+      fprintf(fp_sed_out,"%.14e ",sed_X09[l]);
+      fprintf(fp_sed_out,"%.14e ",sed_X10[l]);
+      fprintf(fp_sed_out,"%.14e ",sed_X11[l]);
+      fprintf(fp_sed_out,"%.14e ",sed_X12[l]);
+      fprintf(fp_sed_out,"\n");
+   }
+   fclose(fp_sed_out);
+   */
    /////////////////////////////////////////////////////////////////////////   
 
    free(rr);
@@ -345,6 +452,7 @@ int main( int argc , char * argv[] ){
    free(logr);
    free(logv);
    free(logs);
+
    return(0);
 
 }

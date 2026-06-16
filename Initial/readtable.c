@@ -142,9 +142,9 @@ void initial( double * prim , double r , double * T ){
    etot = get_eint( prim , &temp );
    for( q=0 ; q<NUM_I ; ++q ){ ebind1 += EBIND[q]*prim[q+XXX]; }
 
-   double r_ignition = 4.976e8;
+   double r_ignition = 5e8;
    double width = 1.25e6;//2e6;
-   double flip = 0.3;//30% He4 to C12
+   double flip = 0.2;//20% He4 to C12
    double frac_flip = flip*pow(M_PI,-(rr[l]-r_ignition)*(rr[l]-r_ignition)/(2*width*width));
    if( fabs(rr[l]-r_ignition)<4*width ){
       //Flip to nickel
