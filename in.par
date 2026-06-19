@@ -1,7 +1,7 @@
 
 //Time Range (sec)//
 T_Start			1e-2
-T_End			1e2 
+T_End			2e1
 
 //Output Frequency//
 Num_Reports		1e5

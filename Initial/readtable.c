@@ -118,11 +118,10 @@ void initial( double * prim , double r , double * T ){
    double r_ignition = 4.5e8;
    double width = 2.5e6;     //one gaussian sigma
    double temp_peak = 2e9;
-   if( fabs(rr[l]-r_ignition)<4*width ){
-      temp = temp+(temp_peak-temp)*pow(M_PI,-(rr[l]-r_ignition)*(rr[l]-r_ignition)/(2*width*width));
-      prim[PPP] = get_pre( prim , &temp );
-      *T = temp;
-   }
+   
+   temp = temp+(temp_peak-temp)*pow(M_PI,-(rr[l]-r_ignition)*(rr[l]-r_ignition)/(2*width*width));
+   prim[PPP] = get_pre( prim , &temp );
+   *T = temp;
    */
    /////////////////////////////////////////////////
    /*

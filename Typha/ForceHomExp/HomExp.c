@@ -62,7 +62,7 @@ int main( int argc , char * argv[] ){
       if (c == '\n') ++nL;
    }
    fclose(pFile);
-   nL-=1; //dont count the header
+   nL-=2; //dont count the header
 
    printf("Begin reading input file\n\n");
 
@@ -78,6 +78,11 @@ int main( int argc , char * argv[] ){
 
    // Read and discard the entire header line using fgets
    // Check for NULL return to handle errors or end of file
+   if( fgets(header_buffer, sizeof(header_buffer), fp) == NULL ){
+      perror("Error reading header line");
+      fclose(fp);
+      return 1;
+   }
    if( fgets(header_buffer, sizeof(header_buffer), fp) == NULL ){
       perror("Error reading header line");
       fclose(fp);
